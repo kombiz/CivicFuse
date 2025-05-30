@@ -1,0 +1,116 @@
+version: '3.8'
+
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: advocacy-cms
+    restart: unless-stopped
+    ports:
+      - "8888:8000"
+    environment:
+      # Database Configuration - Real Endpoints
+      DATABASE_URL: postgresql://postgres:aBmnBHPN8pCiQ82wtYMcJq34oDqiu7@100.101.93.9:5434/advocacy_cms
+      POSTGRES_HOST: 100.101.93.9
+      POSTGRES_PORT: 5434
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: aBmnBHPN8pCiQ82wtYMcJq34oDqiu7
+      POSTGRES_DB: advocacy_cms
+      
+      # Application Configuration
+      APP_ENV: ${APP_ENV:-development}
+      LOG_LEVEL: ${LOG_LEVEL:-INFO}
+      SECRET_KEY: ${SECRET_KEY:-your-secret-key-change-in-production}
+      API_HOST: 0.0.0.0
+      API_PORT: 8000
+      
+      # External Services (for future integration)
+      BLUESKY_API_URL: https://bsky.social/xrpc
+      MELTWATER_API_URL: https://api.meltwater.com
+      OLLAMA_API_URL: http://ollama:11434
+    volumes:
+      # Mount for development hot-reload
+      - ./app:/app/app:ro
+      - ./scripts:/app/scripts:ro
+      - ./tests:/app/tests:ro
+      # Static and template files
+      - ./app/static:/app/app/static:ro
+      - ./app/templates:/app/app/templates:ro
+    networks:
+      - advocacy-network
+    depends_on:
+      - db-init
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  # Database initialization service
+  db-init:
+    image: postgres:15-alpine
+    container_name: advocacy-db-init
+    environment:
+      PGHOST: 100.101.93.9
+      PGPORT: 5434
+      PGUSER: postgres
+      PGPASSWORD: aBmnBHPN8pCiQ82wtYMcJq34oDqiu7
+      PGDATABASE: advocacy_cms
+    volumes:
+      - ./scripts/create_schema.sql:/docker-entrypoint-initdb.d/01-schema.sql:ro
+      - ./scripts/seed_data.sql:/docker-entrypoint-initdb.d/02-seed.sql:ro
+    command: >
+      sh -c "
+        echo 'Checking database connection...' &&
+        until pg_isready; do
+          echo 'Waiting for database...';
+          sleep 2;
+        done;
+        echo 'Database is ready!' &&
+        psql -f /docker-entrypoint-initdb.d/01-schema.sql &&
+        echo 'Schema created successfully!'
+      "
+    networks:
+      - advocacy-network
+    restart: "no"
+
+  # Ollama service for future AI integration
+  ollama:
+    image: ollama/ollama:latest
+    container_name: advocacy-ollama
+    restart: unless-stopped
+    ports:
+      - "11434:11434"
+    volumes:
+      - ollama-data:/root/.ollama
+    networks:
+      - advocacy-network
+    profiles:
+      - ai
+
+  # Nginx reverse proxy for production
+  nginx:
+    image: nginx:alpine
+    container_name: advocacy-nginx
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./docker/nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./docker/ssl:/etc/nginx/ssl:ro
+    depends_on:
+      - app
+    networks:
+      - advocacy-network
+    profiles:
+      - production
+
+networks:
+  advocacy-network:
+    driver: bridge
+
+volumes:
+  ollama-data:

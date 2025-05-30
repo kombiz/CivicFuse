@@ -1,0 +1,71 @@
+version: '3.8'
+
+# Development override configuration
+# Use with: docker-compose -f docker-compose.yml -f docker-compose.dev.yml up
+
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: builder  # Use builder stage for development
+    command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
+    volumes:
+      # Mount entire app directory for hot-reload
+      - ./app:/app/app
+      - ./scripts:/app/scripts
+      - ./tests:/app/tests
+      - ./requirements.txt:/app/requirements.txt:ro
+    environment:
+      # Development-specific settings
+      APP_ENV: development
+      LOG_LEVEL: DEBUG
+      # Enable Python development mode
+      PYTHONDONTWRITEBYTECODE: 1
+      PYTHONUNBUFFERED: 1
+    ports:
+      - "8000:8000"
+      - "5678:5678"  # Python debugger port
+
+  # Development database UI
+  pgadmin:
+    image: dpage/pgadmin4:latest
+    container_name: advocacy-pgadmin
+    environment:
+      PGADMIN_DEFAULT_EMAIL: admin@advocacy.local
+      PGADMIN_DEFAULT_PASSWORD: admin
+      PGADMIN_CONFIG_SERVER_MODE: 'False'
+    ports:
+      - "5050:80"
+    volumes:
+      - pgadmin-data:/var/lib/pgadmin
+    networks:
+      - advocacy-network
+    profiles:
+      - dev-tools
+
+  # Redis for caching (future feature)
+  redis:
+    image: redis:7-alpine
+    container_name: advocacy-redis
+    ports:
+      - "6379:6379"
+    networks:
+      - advocacy-network
+    profiles:
+      - dev-tools
+
+  # Mailhog for email testing (future feature)
+  mailhog:
+    image: mailhog/mailhog:latest
+    container_name: advocacy-mailhog
+    ports:
+      - "1025:1025"  # SMTP
+      - "8025:8025"  # Web UI
+    networks:
+      - advocacy-network
+    profiles:
+      - dev-tools
+
+volumes:
+  pgadmin-data:

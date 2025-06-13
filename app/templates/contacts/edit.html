@@ -1,0 +1,231 @@
+{% extends "base.html" %}
+
+{% block title %}Edit Contact - Advocacy CMS{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col">
+        <nav aria-label="breadcrumb">
+            <ol class="breadcrumb">
+                <li class="breadcrumb-item"><a href="/dashboard">Dashboard</a></li>
+                <li class="breadcrumb-item"><a href="/contacts">Contacts</a></li>
+                <li class="breadcrumb-item active" aria-current="page">Edit Contact</li>
+            </ol>
+        </nav>
+        <h1 class="h2">
+            <i class="bi bi-person-gear"></i> Edit Contact
+        </h1>
+        {% if contact %}
+        <p class="text-muted">Editing contact: {{ contact.full_name }}</p>
+        {% endif %}
+    </div>
+</div>
+
+{% if error %}
+<div class="alert alert-danger alert-dismissible fade show" role="alert">
+    <i class="bi bi-exclamation-triangle-fill"></i> {{ error }}
+    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+</div>
+{% endif %}
+
+<div class="row">
+    <div class="col-lg-8">
+        <div class="card">
+            <div class="card-body">
+                {% if contact %}
+                <form method="post" action="/contacts/{{ contact.contact_id }}/edit">
+                    <!-- Basic Information -->
+                    <h5 class="card-title mb-3">
+                        <i class="bi bi-person"></i> Basic Information
+                    </h5>
+                    
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <label for="full_name" class="form-label">Full Name <span class="text-danger">*</span></label>
+                            <input type="text" class="form-control" id="full_name" name="full_name" 
+                                   value="{{ contact.full_name }}" placeholder="e.g., Jane Smith" required maxlength="255">
+                        </div>
+                        <div class="col-md-6">
+                            <label for="email" class="form-label">Email Address <span class="text-danger">*</span></label>
+                            <input type="email" class="form-control" id="email" name="email" 
+                                   value="{{ contact.email }}" placeholder="e.g., jane.smith@example.com" required>
+                        </div>
+                    </div>
+                    
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <label for="phone" class="form-label">Phone Number</label>
+                            <input type="tel" class="form-control" id="phone" name="phone" 
+                                   value="{{ contact.phone or '' }}" placeholder="e.g., +1 (555) 123-4567" maxlength="50">
+                        </div>
+                        <div class="col-md-6">
+                            <label for="location" class="form-label">Location</label>
+                            <input type="text" class="form-control" id="location" name="location" 
+                                   value="{{ contact.location or '' }}" placeholder="e.g., San Francisco, CA" maxlength="255">
+                        </div>
+                    </div>
+                    
+                    <hr class="my-4">
+                    
+                    <!-- Professional Information -->
+                    <h5 class="card-title mb-3">
+                        <i class="bi bi-building"></i> Professional Information
+                    </h5>
+                    
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <label for="organization" class="form-label">Organization</label>
+                            <input type="text" class="form-control" id="organization" name="organization" 
+                                   value="{{ contact.organization or '' }}" placeholder="e.g., Environmental Defense Fund" maxlength="255">
+                        </div>
+                        <div class="col-md-6">
+                            <label for="job_title" class="form-label">Job Title</label>
+                            <input type="text" class="form-control" id="job_title" name="job_title" 
+                                   value="{{ contact.job_title or '' }}" placeholder="e.g., Senior Policy Analyst" maxlength="255">
+                        </div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="website_url" class="form-label">Website URL</label>
+                        <input type="url" class="form-control" id="website_url" name="website_url" 
+                               value="{{ contact.website_url or '' }}" placeholder="e.g., https://www.example.com">
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="bio" class="form-label">Biography</label>
+                        <textarea class="form-control" id="bio" name="bio" rows="3" 
+                                  placeholder="Brief description of the contact's background and expertise...">{{ contact.bio or '' }}</textarea>
+                    </div>
+                    
+                    <hr class="my-4">
+                    
+                    <!-- Advocacy Information -->
+                    <h5 class="card-title mb-3">
+                        <i class="bi bi-megaphone"></i> Advocacy Information
+                    </h5>
+                    
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <label for="influence_score" class="form-label">Influence Score</label>
+                            <select class="form-select" id="influence_score" name="influence_score">
+                                <option value="">Select influence level</option>
+                                <option value="1" {% if contact.influence_score == 1 %}selected{% endif %}>1 - Very Low</option>
+                                <option value="2" {% if contact.influence_score == 2 %}selected{% endif %}>2 - Low</option>
+                                <option value="3" {% if contact.influence_score == 3 %}selected{% endif %}>3 - Below Average</option>
+                                <option value="4" {% if contact.influence_score == 4 %}selected{% endif %}>4 - Average</option>
+                                <option value="5" {% if contact.influence_score == 5 %}selected{% endif %}>5 - Moderate</option>
+                                <option value="6" {% if contact.influence_score == 6 %}selected{% endif %}>6 - Above Average</option>
+                                <option value="7" {% if contact.influence_score == 7 %}selected{% endif %}>7 - High</option>
+                                <option value="8" {% if contact.influence_score == 8 %}selected{% endif %}>8 - Very High</option>
+                                <option value="9" {% if contact.influence_score == 9 %}selected{% endif %}>9 - Extremely High</option>
+                                <option value="10" {% if contact.influence_score == 10 %}selected{% endif %}>10 - Maximum Influence</option>
+                            </select>
+                            <div class="form-text">Rate this contact's influence level (1-10)</div>
+                        </div>
+                        <div class="col-md-6">
+                            <label for="contact_status" class="form-label">Status</label>
+                            <select class="form-select" id="contact_status" name="contact_status">
+                                <option value="active" {% if contact.contact_status == 'active' %}selected{% endif %}>Active</option>
+                                <option value="inactive" {% if contact.contact_status == 'inactive' %}selected{% endif %}>Inactive</option>
+                                <option value="archived" {% if contact.contact_status == 'archived' %}selected{% endif %}>Archived</option>
+                            </select>
+                        </div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="tags" class="form-label">Tags</label>
+                        <input type="text" class="form-control" id="tags" name="tags" 
+                               value="{{ contact.tags or '' }}" placeholder="e.g., environment, policy, journalist">
+                        <div class="form-text">Comma-separated tags for categorization</div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="notes" class="form-label">Notes</label>
+                        <textarea class="form-control" id="notes" name="notes" rows="3" 
+                                  placeholder="Any additional notes or important information about this contact...">{{ contact.notes or '' }}</textarea>
+                    </div>
+                    
+                    <div class="d-flex justify-content-between">
+                        <a href="/contacts" class="btn btn-outline-secondary">
+                            <i class="bi bi-arrow-left"></i> Back to Contacts
+                        </a>
+                        <button type="submit" class="btn btn-primary">
+                            <i class="bi bi-save"></i> Update Contact
+                        </button>
+                    </div>
+                </form>
+                {% else %}
+                <div class="alert alert-warning">
+                    <i class="bi bi-exclamation-triangle"></i> Contact data could not be loaded.
+                </div>
+                <a href="/contacts" class="btn btn-outline-secondary">
+                    <i class="bi bi-arrow-left"></i> Back to Contacts
+                </a>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-lg-4">
+        {% if contact %}
+        <!-- Contact Metadata -->
+        <div class="card mb-3">
+            <div class="card-body">
+                <h5 class="card-title">
+                    <i class="bi bi-info-circle"></i> Contact Information
+                </h5>
+                <div class="row">
+                    <div class="col-sm-6">
+                        <strong>Contact ID:</strong><br>
+                        <code class="small">{{ contact.contact_id }}</code>
+                    </div>
+                    <div class="col-sm-6">
+                        <strong>Created:</strong><br>
+                        <span class="small">{{ contact.created_at.strftime('%B %d, %Y') if contact.created_at else 'Unknown' }}</span>
+                    </div>
+                </div>
+                {% if contact.updated_at %}
+                <div class="row mt-2">
+                    <div class="col-sm-6">
+                        <strong>Last Updated:</strong><br>
+                        <span class="small">{{ contact.updated_at.strftime('%B %d, %Y') }}</span>
+                    </div>
+                    <div class="col-sm-6">
+                        <strong>Version:</strong><br>
+                        <span class="small">{{ contact.version or 1 }}</span>
+                    </div>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+        {% endif %}
+        
+        <div class="card bg-light">
+            <div class="card-body">
+                <h5 class="card-title">
+                    <i class="bi bi-info-circle"></i> Editing Guidelines
+                </h5>
+                <p class="card-text">When editing contacts, remember:</p>
+                <ul class="list-unstyled">
+                    <li><i class="bi bi-check-circle text-success"></i> Verify contact information accuracy</li>
+                    <li><i class="bi bi-check-circle text-success"></i> Update relevant tags for filtering</li>
+                    <li><i class="bi bi-check-circle text-success"></i> Adjust influence score as needed</li>
+                    <li><i class="bi bi-check-circle text-success"></i> Keep biographical context current</li>
+                </ul>
+                <hr>
+                <div class="mb-3">
+                    <strong>Required Fields:</strong>
+                    <ul class="list-unstyled mt-2">
+                        <li><span class="text-danger">*</span> Full Name</li>
+                        <li><span class="text-danger">*</span> Email Address</li>
+                    </ul>
+                </div>
+                <small class="text-muted">
+                    <i class="bi bi-lightbulb"></i> 
+                    <strong>Tip:</strong> Changes are saved immediately when you submit the form.
+                </small>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

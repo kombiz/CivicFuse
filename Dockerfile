@@ -37,10 +37,10 @@ COPY --from=builder /root/.local /home/appuser/.local
 COPY . .
 
 # Fix ownership and permissions more thoroughly
-RUN find /app -type d -exec chmod 755 {} \; && \
+RUN chown -R appuser:appuser /app && \
+    find /app -type d -exec chmod 755 {} \; && \
     find /app -type f -exec chmod 644 {} \; && \
-    chmod +x scripts/*.py 2>/dev/null || true && \
-    chown -R appuser:appuser /app
+    chmod +x scripts/*.py 2>/dev/null || true
 
 # Switch to non-root user
 USER appuser

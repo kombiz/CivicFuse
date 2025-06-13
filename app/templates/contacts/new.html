@@ -1,0 +1,187 @@
+{% extends "base.html" %}
+
+{% block title %}New Contact - Advocacy CMS{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col">
+        <nav aria-label="breadcrumb">
+            <ol class="breadcrumb">
+                <li class="breadcrumb-item"><a href="/dashboard">Dashboard</a></li>
+                <li class="breadcrumb-item"><a href="/contacts">Contacts</a></li>
+                <li class="breadcrumb-item active" aria-current="page">New Contact</li>
+            </ol>
+        </nav>
+        <h1 class="h2">
+            <i class="bi bi-person-plus"></i> Add New Contact
+        </h1>
+        <p class="text-muted">Add a new contact to your advocacy network</p>
+    </div>
+</div>
+
+{% if error %}
+<div class="alert alert-danger alert-dismissible fade show" role="alert">
+    <i class="bi bi-exclamation-triangle-fill"></i> {{ error }}
+    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+</div>
+{% endif %}
+
+<div class="row">
+    <div class="col-lg-8">
+        <div class="card">
+            <div class="card-body">
+                <form method="post" action="/contacts/new">
+                    <!-- Basic Information -->
+                    <h5 class="card-title mb-3">
+                        <i class="bi bi-person"></i> Basic Information
+                    </h5>
+                    
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <label for="full_name" class="form-label">Full Name <span class="text-danger">*</span></label>
+                            <input type="text" class="form-control" id="full_name" name="full_name" 
+                                   placeholder="e.g., Jane Smith" required maxlength="255">
+                        </div>
+                        <div class="col-md-6">
+                            <label for="email" class="form-label">Email Address <span class="text-danger">*</span></label>
+                            <input type="email" class="form-control" id="email" name="email" 
+                                   placeholder="e.g., jane.smith@example.com" required>
+                        </div>
+                    </div>
+                    
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <label for="phone" class="form-label">Phone Number</label>
+                            <input type="tel" class="form-control" id="phone" name="phone" 
+                                   placeholder="e.g., +1 (555) 123-4567" maxlength="50">
+                        </div>
+                        <div class="col-md-6">
+                            <label for="location" class="form-label">Location</label>
+                            <input type="text" class="form-control" id="location" name="location" 
+                                   placeholder="e.g., San Francisco, CA" maxlength="255">
+                        </div>
+                    </div>
+                    
+                    <hr class="my-4">
+                    
+                    <!-- Professional Information -->
+                    <h5 class="card-title mb-3">
+                        <i class="bi bi-building"></i> Professional Information
+                    </h5>
+                    
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <label for="organization" class="form-label">Organization</label>
+                            <input type="text" class="form-control" id="organization" name="organization" 
+                                   placeholder="e.g., Environmental Defense Fund" maxlength="255">
+                        </div>
+                        <div class="col-md-6">
+                            <label for="job_title" class="form-label">Job Title</label>
+                            <input type="text" class="form-control" id="job_title" name="job_title" 
+                                   placeholder="e.g., Senior Policy Analyst" maxlength="255">
+                        </div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="website_url" class="form-label">Website URL</label>
+                        <input type="url" class="form-control" id="website_url" name="website_url" 
+                               placeholder="e.g., https://www.example.com">
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="bio" class="form-label">Biography</label>
+                        <textarea class="form-control" id="bio" name="bio" rows="3" 
+                                  placeholder="Brief description of the contact's background and expertise..."></textarea>
+                    </div>
+                    
+                    <hr class="my-4">
+                    
+                    <!-- Advocacy Information -->
+                    <h5 class="card-title mb-3">
+                        <i class="bi bi-megaphone"></i> Advocacy Information
+                    </h5>
+                    
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <label for="influence_score" class="form-label">Influence Score</label>
+                            <select class="form-select" id="influence_score" name="influence_score">
+                                <option value="">Select influence level</option>
+                                <option value="1">1 - Very Low</option>
+                                <option value="2">2 - Low</option>
+                                <option value="3">3 - Below Average</option>
+                                <option value="4">4 - Average</option>
+                                <option value="5">5 - Moderate</option>
+                                <option value="6">6 - Above Average</option>
+                                <option value="7">7 - High</option>
+                                <option value="8">8 - Very High</option>
+                                <option value="9">9 - Extremely High</option>
+                                <option value="10">10 - Maximum Influence</option>
+                            </select>
+                            <div class="form-text">Rate this contact's influence level (1-10)</div>
+                        </div>
+                        <div class="col-md-6">
+                            <label for="contact_status" class="form-label">Status</label>
+                            <select class="form-select" id="contact_status" name="contact_status">
+                                <option value="active" selected>Active</option>
+                                <option value="inactive">Inactive</option>
+                                <option value="archived">Archived</option>
+                            </select>
+                        </div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="tags" class="form-label">Tags</label>
+                        <input type="text" class="form-control" id="tags" name="tags" 
+                               placeholder="e.g., environment, policy, journalist">
+                        <div class="form-text">Comma-separated tags for categorization</div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="notes" class="form-label">Notes</label>
+                        <textarea class="form-control" id="notes" name="notes" rows="3" 
+                                  placeholder="Any additional notes or important information about this contact..."></textarea>
+                    </div>
+                    
+                    <div class="d-flex justify-content-between">
+                        <a href="/contacts" class="btn btn-outline-secondary">
+                            <i class="bi bi-arrow-left"></i> Back to Contacts
+                        </a>
+                        <button type="submit" class="btn btn-primary">
+                            <i class="bi bi-person-plus"></i> Add Contact
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-lg-4">
+        <div class="card bg-light">
+            <div class="card-body">
+                <h5 class="card-title">
+                    <i class="bi bi-info-circle"></i> Contact Guidelines
+                </h5>
+                <p class="card-text">When adding contacts, consider:</p>
+                <ul class="list-unstyled">
+                    <li><i class="bi bi-check-circle text-success"></i> Verify contact information accuracy</li>
+                    <li><i class="bi bi-check-circle text-success"></i> Add relevant tags for easy filtering</li>
+                    <li><i class="bi bi-check-circle text-success"></i> Rate influence score honestly</li>
+                    <li><i class="bi bi-check-circle text-success"></i> Include biographical context</li>
+                </ul>
+                <hr>
+                <div class="mb-3">
+                    <strong>Required Fields:</strong>
+                    <ul class="list-unstyled mt-2">
+                        <li><span class="text-danger">*</span> Full Name</li>
+                        <li><span class="text-danger">*</span> Email Address</li>
+                    </ul>
+                </div>
+                <small class="text-muted">
+                    <i class="bi bi-lightbulb"></i> 
+                    <strong>Tip:</strong> You can assign contacts to groups after creation for better organization.
+                </small>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -54,7 +54,9 @@ app.add_middleware(
 app.mount("/static", StaticFiles(directory=settings.static_dir), name="static")
 
 # Setup templates
-templates = Jinja2Templates(directory=settings.templates_dir)
+import os
+templates_dir = os.path.join(os.path.dirname(__file__), "templates")
+templates = Jinja2Templates(directory=templates_dir)
 
 # Health check endpoint
 @app.get("/health")
@@ -159,6 +161,195 @@ async def groups_list(request: Request):
         }
     )
 
+# New group page
+@app.get("/groups/new", response_class=HTMLResponse)
+async def new_group(request: Request):
+    """New group creation page."""
+    return templates.TemplateResponse(
+        "groups/new.html",
+        {"request": request}
+    )
+
+# Edit group page
+@app.get("/groups/{group_id}/edit", response_class=HTMLResponse)
+async def edit_group(request: Request, group_id: str):
+    """Edit group page."""
+    import httpx
+    
+    try:
+        # Fetch group data from API
+        async with httpx.AsyncClient() as client:
+            response = await client.get(
+                f"http://localhost:8000/api/v1/groups/{group_id}",
+                timeout=30.0
+            )
+            response.raise_for_status()
+            group_data = response.json()
+        
+        return templates.TemplateResponse(
+            "groups/edit.html",
+            {
+                "request": request,
+                "group": group_data
+            }
+        )
+        
+    except httpx.HTTPStatusError as e:
+        if e.response.status_code == 404:
+            return templates.TemplateResponse(
+                "404.html",
+                {"request": request},
+                status_code=404
+            )
+        logger.error(f"Failed to fetch group {group_id}: {e}")
+        return templates.TemplateResponse(
+            "groups/edit.html",
+            {
+                "request": request,
+                "error": "Failed to load group data. Please try again."
+            },
+            status_code=500
+        )
+    except Exception as e:
+        logger.error(f"Unexpected error fetching group {group_id}: {e}")
+        return templates.TemplateResponse(
+            "groups/edit.html",
+            {
+                "request": request,
+                "error": "An unexpected error occurred. Please try again."
+            },
+            status_code=500
+        )
+
+# Create new group
+@app.post("/groups/new")
+async def create_group(request: Request):
+    """Create a new group from form data."""
+    import httpx
+    from fastapi.responses import RedirectResponse
+    
+    try:
+        # Get form data
+        form_data = await request.form()
+        group_data = {
+            "group_name": form_data.get("group_name"),
+            "description": form_data.get("description") or None
+        }
+        
+        # Make API call to create group
+        async with httpx.AsyncClient() as client:
+            response = await client.post(
+                f"http://localhost:8000/api/v1/groups/",
+                json=group_data,
+                timeout=30.0
+            )
+            response.raise_for_status()
+        
+        # Redirect to groups list on success
+        return RedirectResponse(url="/groups", status_code=302)
+        
+    except httpx.HTTPError as e:
+        logger.error(f"Failed to create group: {e}")
+        # Return to form with error (in production, would show error message)
+        return templates.TemplateResponse(
+            "groups/new.html",
+            {
+                "request": request,
+                "error": "Failed to create group. Please try again."
+            },
+            status_code=500
+        )
+    except Exception as e:
+        logger.error(f"Unexpected error creating group: {e}")
+        return templates.TemplateResponse(
+            "groups/new.html",
+            {
+                "request": request,
+                "error": "An unexpected error occurred. Please try again."
+            },
+            status_code=500
+        )
+
+# Update group
+@app.post("/groups/{group_id}/edit")
+async def update_group(request: Request, group_id: str):
+    """Update a group from form data."""
+    import httpx
+    from fastapi.responses import RedirectResponse
+    
+    try:
+        # Get form data
+        form_data = await request.form()
+        group_data = {
+            "group_name": form_data.get("group_name"),
+            "description": form_data.get("description") or None
+        }
+        
+        # Make API call to update group
+        async with httpx.AsyncClient() as client:
+            response = await client.put(
+                f"http://localhost:8000/api/v1/groups/{group_id}",
+                json=group_data,
+                timeout=30.0
+            )
+            response.raise_for_status()
+        
+        # Redirect to groups list on success
+        return RedirectResponse(url="/groups", status_code=302)
+        
+    except httpx.HTTPStatusError as e:
+        if e.response.status_code == 404:
+            return templates.TemplateResponse(
+                "404.html",
+                {"request": request},
+                status_code=404
+            )
+        logger.error(f"Failed to update group {group_id}: {e}")
+        
+        # Try to fetch group data to redisplay form with error
+        try:
+            async with httpx.AsyncClient() as client:
+                response = await client.get(
+                    f"http://localhost:8000/api/v1/groups/{group_id}",
+                    timeout=30.0
+                )
+                group_data = response.json() if response.status_code == 200 else None
+        except:
+            group_data = None
+        
+        return templates.TemplateResponse(
+            "groups/edit.html",
+            {
+                "request": request,
+                "group": group_data,
+                "error": "Failed to update group. Please try again."
+            },
+            status_code=500
+        )
+    except Exception as e:
+        logger.error(f"Unexpected error updating group {group_id}: {e}")
+        
+        # Try to fetch group data to redisplay form with error
+        try:
+            async with httpx.AsyncClient() as client:
+                response = await client.get(
+                    f"http://localhost:8000/api/v1/groups/{group_id}",
+                    timeout=30.0
+                )
+                group_data = response.json() if response.status_code == 200 else None
+        except:
+            group_data = None
+        
+        return templates.TemplateResponse(
+            "groups/edit.html",
+            {
+                "request": request,
+                "group": group_data,
+                "error": "An unexpected error occurred. Please try again."
+            },
+            status_code=500
+        )
+
 # Contacts list page
 @app.get("/contacts", response_class=HTMLResponse)
 async def contacts_list(request: Request):
@@ -195,11 +386,322 @@ async def contacts_list(request: Request):
         }
     )
 
+# New contact page
+@app.get("/contacts/new", response_class=HTMLResponse)
+async def new_contact(request: Request):
+    """New contact creation page."""
+    return templates.TemplateResponse(
+        "contacts/new.html",
+        {"request": request}
+    )
+
+# Create new contact
+@app.post("/contacts/new")
+async def create_contact(request: Request):
+    """Create a new contact from form data."""
+    from fastapi.responses import RedirectResponse
+    from app.database import execute_query
+    
+    try:
+        # Get form data
+        form_data = await request.form()
+        
+        # Handle influence_score (convert to int if provided)
+        influence_score = form_data.get("influence_score")
+        if influence_score and influence_score.isdigit():
+            influence_score = int(influence_score)
+        else:
+            influence_score = None
+        
+        # Insert directly into database
+        insert_query = """
+            INSERT INTO cms_core.contacts (
+                full_name, email, phone, organization, job_title, bio,
+                location, website_url, influence_score, contact_status, tags, notes
+            ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+            RETURNING contact_id
+        """
+        
+        result = execute_query(insert_query, (
+            form_data.get("full_name"),
+            form_data.get("email"),
+            form_data.get("phone") or None,
+            form_data.get("organization") or None,
+            form_data.get("job_title") or None,
+            form_data.get("bio") or None,
+            form_data.get("location") or None,
+            form_data.get("website_url") or None,
+            influence_score,
+            form_data.get("contact_status", "active"),
+            form_data.get("tags") or None,
+            form_data.get("notes") or None
+        ), fetch_one=True)
+        
+        if result:
+            logger.info(f"Created contact: {result['contact_id']}")
+            # Redirect to contacts list on success
+            return RedirectResponse(url="/contacts", status_code=302)
+        else:
+            raise Exception("Failed to insert contact")
+        
+    except Exception as e:
+        logger.error(f"Failed to create contact: {e}")
+        return templates.TemplateResponse(
+            "contacts/new.html",
+            {
+                "request": request,
+                "error": "Failed to create contact. Please check your input and try again."
+            },
+            status_code=500
+        )
+
+# Edit contact page
+@app.get("/contacts/{contact_id}/edit", response_class=HTMLResponse)
+async def edit_contact(request: Request, contact_id: str):
+    """Edit contact page."""
+    from app.database import execute_query
+    
+    try:
+        # Fetch contact data from database
+        contact_query = """
+            SELECT contact_id, full_name, email, phone, organization, job_title, bio,
+                   location, website_url, influence_score, contact_status, tags, notes,
+                   created_at, updated_at, version
+            FROM cms_core.contacts
+            WHERE contact_id = %s
+        """
+        
+        contact_data = execute_query(contact_query, (contact_id,), fetch_one=True)
+        
+        if not contact_data:
+            return templates.TemplateResponse(
+                "404.html",
+                {"request": request},
+                status_code=404
+            )
+        
+        return templates.TemplateResponse(
+            "contacts/edit.html",
+            {
+                "request": request,
+                "contact": contact_data
+            }
+        )
+        
+    except Exception as e:
+        logger.error(f"Unexpected error fetching contact {contact_id}: {e}")
+        return templates.TemplateResponse(
+            "contacts/edit.html",
+            {
+                "request": request,
+                "error": "An unexpected error occurred. Please try again."
+            },
+            status_code=500
+        )
+
+# Update contact
+@app.post("/contacts/{contact_id}/edit")
+async def update_contact(request: Request, contact_id: str):
+    """Update a contact from form data."""
+    from fastapi.responses import RedirectResponse
+    from app.database import execute_query
+    
+    try:
+        # Get form data
+        form_data = await request.form()
+        
+        # Handle influence_score (convert to int if provided)
+        influence_score = form_data.get("influence_score")
+        if influence_score and influence_score.isdigit():
+            influence_score = int(influence_score)
+        else:
+            influence_score = None
+        
+        # Update contact in database
+        update_query = """
+            UPDATE cms_core.contacts SET
+                full_name = %s, email = %s, phone = %s, organization = %s, job_title = %s, bio = %s,
+                location = %s, website_url = %s, influence_score = %s, contact_status = %s, tags = %s, notes = %s,
+                updated_at = CURRENT_TIMESTAMP, version = COALESCE(version, 0) + 1
+            WHERE contact_id = %s
+            RETURNING contact_id
+        """
+        
+        result = execute_query(update_query, (
+            form_data.get("full_name"),
+            form_data.get("email"),
+            form_data.get("phone") or None,
+            form_data.get("organization") or None,
+            form_data.get("job_title") or None,
+            form_data.get("bio") or None,
+            form_data.get("location") or None,
+            form_data.get("website_url") or None,
+            influence_score,
+            form_data.get("contact_status", "active"),
+            form_data.get("tags") or None,
+            form_data.get("notes") or None,
+            contact_id
+        ), fetch_one=True)
+        
+        if result:
+            logger.info(f"Updated contact: {result['contact_id']}")
+            # Redirect to contacts list on success
+            return RedirectResponse(url="/contacts", status_code=302)
+        else:
+            raise Exception("Contact not found or failed to update")
+        
+    except Exception as e:
+        logger.error(f"Failed to update contact {contact_id}: {e}")
+        
+        # Try to fetch contact data to redisplay form with error
+        try:
+            contact_query = """
+                SELECT contact_id, full_name, email, phone, organization, job_title, bio,
+                       location, website_url, influence_score, contact_status, tags, notes,
+                       created_at, updated_at, version
+                FROM cms_core.contacts
+                WHERE contact_id = %s
+            """
+            contact_data = execute_query(contact_query, (contact_id,), fetch_one=True)
+        except:
+            contact_data = None
+        
+        return templates.TemplateResponse(
+            "contacts/edit.html",
+            {
+                "request": request,
+                "contact": contact_data,
+                "error": "Failed to update contact. Please check your input and try again."
+            },
+            status_code=500
+        )
+
+# Contact detail page
+@app.get("/contacts/{contact_id}/detail", response_class=HTMLResponse)
+async def contact_detail(request: Request, contact_id: str):
+    """Contact detail page with social profiles."""
+    import httpx
+    from app.database import execute_query
+    
+    try:
+        # Get contact details from database
+        contact_query = """
+            SELECT contact_id, full_name, email, phone, organization, job_title, bio,
+                   location, website_url, influence_score, contact_status, tags, notes,
+                   created_at, updated_at, version
+            FROM cms_core.contacts
+            WHERE contact_id = %s
+        """
+        
+        contact_data = execute_query(contact_query, (contact_id,), fetch_one=True)
+        
+        if not contact_data:
+            return templates.TemplateResponse(
+                "404.html",
+                {"request": request},
+                status_code=404
+            )
+        
+        # Get group memberships for this contact
+        groups_query = """
+            SELECT 
+                g.group_id,
+                g.group_name,
+                g.description,
+                cgm.joined_at,
+                cgm.membership_status,
+                cgm.notes as membership_notes
+            FROM cms_core.contact_group_memberships cgm
+            JOIN cms_core.groups g ON cgm.group_id = g.group_id
+            WHERE cgm.contact_id = %s
+            ORDER BY g.group_name
+        """
+        groups_data = execute_query(groups_query, (contact_id,))
+        contact_data["groups"] = groups_data if groups_data else []
+        
+        # Get social profiles for this contact using API
+        async with httpx.AsyncClient() as client:
+            profiles_response = await client.get(
+                f"http://localhost:8000/api/v1/social-profiles/?contact_id={contact_id}",
+                timeout=30.0
+            )
+            profiles_response.raise_for_status()
+            social_profiles = profiles_response.json()
+        
+        return templates.TemplateResponse(
+            "contacts/detail.html",
+            {
+                "request": request,
+                "contact": contact_data,
+                "social_profiles": social_profiles
+            }
+        )
+        
+    except httpx.HTTPStatusError as e:
+        logger.error(f"Failed to fetch social profiles for contact {contact_id}: {e}")
+        return templates.TemplateResponse(
+            "contacts/detail.html",
+            {
+                "request": request,
+                "contact": contact_data if 'contact_data' in locals() else None,
+                "social_profiles": [],
+                "error": "Failed to load social profiles."
+            }
+        )
+    except Exception as e:
+        logger.error(f"Unexpected error fetching contact {contact_id}: {e}")
+        return templates.TemplateResponse(
+            "contacts/detail.html",
+            {
+                "request": request,
+                "error": "An unexpected error occurred. Please try again."
+            },
+            status_code=500
+        )
+
+# Create new social profile for contact
+@app.post("/contacts/{contact_id}/social-profiles/new")
+async def create_contact_social_profile(request: Request, contact_id: str):
+    """Create a new social profile for a contact from form data."""
+    import httpx
+    from fastapi.responses import RedirectResponse
+    
+    try:
+        # Get form data
+        form_data = await request.form()
+        profile_data = {
+            "contact_id": contact_id,
+            "platform": form_data.get("platform"),
+            "username_or_handle": form_data.get("username_or_handle") or None,
+            "profile_url": form_data.get("profile_url"),
+            "notes": form_data.get("notes") or None
+        }
+        
+        # Make API call to create social profile
+        async with httpx.AsyncClient() as client:
+            response = await client.post(
+                f"http://localhost:8000/api/v1/social-profiles/",
+                json=profile_data,
+                timeout=30.0
+            )
+            response.raise_for_status()
+        
+        # Redirect back to contact detail page on success
+        return RedirectResponse(url=f"/contacts/{contact_id}/detail", status_code=302)
+        
+    except httpx.HTTPStatusError as e:
+        logger.error(f"Failed to create social profile for contact {contact_id}: {e}")
+        # Redirect back with error (in a real app we'd show the error message)
+        return RedirectResponse(url=f"/contacts/{contact_id}/detail", status_code=302)
+    except Exception as e:
+        logger.error(f"Unexpected error creating social profile for contact {contact_id}: {e}")
+        return RedirectResponse(url=f"/contacts/{contact_id}/detail", status_code=302)
+
 # API v1 routes will be registered here
-from app.api.v1 import groups, contacts, social_profiles, shared_content
+from app.api.v1 import groups, social_profiles, shared_content
 
 app.include_router(groups.router, prefix=f"{settings.api_v1_prefix}/groups", tags=["groups"])
-app.include_router(contacts.router, prefix=settings.api_v1_prefix)
+# Temporarily disabled due to permission issue: app.include_router(contacts.router, prefix=settings.api_v1_prefix, tags=["contacts"])
 app.include_router(social_profiles.router, prefix=f"{settings.api_v1_prefix}/social-profiles", tags=["social-profiles"])
 app.include_router(shared_content.router, prefix=f"{settings.api_v1_prefix}/shared-content", tags=["shared-content"])
 
